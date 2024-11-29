@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import classes from "./header.module.css";
+import classes from "./Header.module.css";
 import { GrLocation } from "react-icons/gr"; 
 import { BsSearch } from "react-icons/bs";
 import { BiCart } from "react-icons/bi";
