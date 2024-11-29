@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import classes from "../../pages/Payment/payment.module.css";
+import classes from "./Payment.module.css";
 import { DataContext } from "../../Components/DataProvider/DataProvider";
 import ProductCard from "../../Components/Product/ProductCard";
 import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
@@ -12,74 +12,72 @@ import { useNavigate } from "react-router-dom";
 import { Type } from "../../Utility/action.type";
 
 function Payment() {
-const [{ user, basket }, dispatch] = useContext(DataContext);
-console.log(user);
-const totalItem = basket?.reduce((amount, item) => {
-  return item.amount + amount;
-}, 0);
+  const [{ user, basket }, dispatch] = useContext(DataContext);
+  console.log(user);
+  const totalItem = basket?.reduce((amount, item) => {
+    return item.amount + amount;
+  }, 0);
 
-const total = basket.reduce((amount, item) => {
-  return item.price * item.amount + amount;
-}, 0);
+  const total = basket.reduce((amount, item) => {
+    return item.price * item.amount + amount;
+  }, 0);
 
-const [cardErro, setCardError] = useState(null);
-const [processing, setProcessing] = useState(false);
-const navigate = useNavigate();
-const stripe = useStripe();
-const elements = useElements();
-const handleChange = (e) => {
-  // console.log(e);
-  e?.error?.message ? setCardError(e?.error?.message) : setCardError("");
-};
+  const [cardErro, setCardError] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const navigate = useNavigate();
+  const stripe = useStripe();
+  const elements = useElements();
+  const handleChange = (e) => {
+    // console.log(e);
+    e?.error?.message ? setCardError(e?.error?.message) : setCardError("");
+  };
 
-const handlePayment = async (e) => {
-  e.preventDefault();
+  const handlePayment = async (e) => {
+    e.preventDefault();
 
-  try {
-    setProcessing(true);
-    //1. contacting backend || function----> to client secret
-    const response = await axiosInstance({
-      method: "POST",
-      url: `/payment/create?total=${total * 100}`,
-    });
-    // console.log(response.data);
-    const clientSecret = response.data?.clientSecret;
-    //2. client side (react side confirmation)
-
-    const { paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: {
-        card: elements.getElement(CardElement),
-      },
-    });
-    // console.log(paymentIntent);
-    //3. after the confirmation---> order firebase database save, clear basket
-    await db
-      .collection("users")
-      .doc(user.uid)
-      .collection("orders")
-      .doc(paymentIntent.id)
-      .set({
-        basket: basket,
-        amount: paymentIntent.amount,
-        created: paymentIntent.created,
+    try {
+      setProcessing(true);
+      //1. contacting backend || function----> to client secret
+      const response = await axiosInstance({
+        method: "POST",
+        url: `/payment/create?total=${total * 100}`,
       });
-    // Empty the basket
+      // console.log(response.data);
+      const clientSecret = response.data?.clientSecret;
+      //2. client side (react side confirmation)
 
-    dispatch({
-      type: Type.EMPTY_BASKET,
-    });
+      const { paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
+        },
+      });
+      // console.log(paymentIntent);
+      //3. after the confirmation---> order firebase database save, clear basket
+      await db
+        .collection("users")
+        .doc(user.uid)
+        .collection("orders")
+        .doc(paymentIntent.id)
+        .set({
+          basket: basket,
+          amount: paymentIntent.amount,
+          created: paymentIntent.created,
+        });
+      // Empty the basket
 
-    setProcessing(false);
-    navigate("/orders", { state: { msg: "You  have placed new Order" } });
-  } catch (error) {
-    // console.log(error)
-    setProcessing(false);
-  }
-};
+      dispatch({
+        type: Type.EMPTY_BASKET,
+      });
 
+      setProcessing(false);
+      navigate("/orders", { state: { msg: "You  have placed new Order" } });
+    } catch (error) {
+      // console.log(error)
+      setProcessing(false);
+    }
+  };
 
-
-    return (
+  return (
     <LayOut>
       {/* header */}
       <div className={classes.payment_header}>Checkout({totalItem}) items</div>
@@ -140,6 +138,6 @@ const handlePayment = async (e) => {
       </section>
     </LayOut>
   );
-};
+}
 
 export default Payment;
